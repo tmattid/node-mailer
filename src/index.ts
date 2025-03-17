@@ -9,31 +9,40 @@ dotenv.config()
 const app = express()
 const port = process.env.PORT || 3000
 
-// Handle CORS - explicitly handle OPTIONS preflight
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-  res.header(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, Content-Length, X-Requested-With',
-  )
-  res.sendStatus(200)
-})
+// CORS Configuration
+const corsOptions = {
+  origin: true, // Reflect the request origin, or use '*'
+  credentials: true,
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+  ],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+}
 
-// Global CORS middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*')
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-  res.header(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, Content-Length, X-Requested-With',
-  )
-  next()
-})
+// Apply CORS globally - this must come before routes
+app.use(cors(corsOptions))
 
-// Apply regular CORS middleware as well
-app.use(cors({ origin: '*' }))
+// Pre-flight OPTIONS handler
+app.options('*', cors(corsOptions))
+
+// Parse JSON body
 app.use(express.json())
+
+// Root endpoint
+app.get('/', (_, res) => {
+  res.json({ message: 'NodeMailer API is running' })
+})
+
+// Health check endpoint
+app.get('/health', (_, res) => {
+  res.json({ status: 'ok' })
+})
 
 // Email configuration type
 interface EmailConfig {
@@ -65,13 +74,13 @@ const transporter = nodemailer.createTransport({
   },
 } as EmailConfig)
 
-// Health check endpoint
-app.get('/health', (_, res) => {
-  res.json({ status: 'ok' })
-})
-
 // Send email endpoint
 app.post('/api/send-email', async (req, res) => {
+  // Add CORS headers explicitly
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+
   try {
     const { to, subject, text, html }: EmailRequest = req.body
 
