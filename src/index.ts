@@ -9,29 +9,30 @@ dotenv.config()
 const app = express()
 const port = process.env.PORT || 3000
 
-// More permissive CORS setup
-app.use((req, res, next) => {
+// Handle CORS - explicitly handle OPTIONS preflight
+app.options('*', (req, res) => {
   res.header('Access-Control-Allow-Origin', '*')
-  res.header(
-    'Access-Control-Allow-Methods',
-    'GET, POST, OPTIONS, PUT, PATCH, DELETE',
-  )
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
   res.header(
     'Access-Control-Allow-Headers',
-    'X-Requested-With, Content-Type, Accept, Authorization',
+    'Content-Type, Authorization, Content-Length, X-Requested-With',
   )
-  res.header('Access-Control-Allow-Credentials', 'true')
+  res.sendStatus(200)
+})
 
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
-  }
-
+// Global CORS middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Content-Type, Authorization, Content-Length, X-Requested-With',
+  )
   next()
 })
 
 // Apply regular CORS middleware as well
-app.use(cors())
+app.use(cors({ origin: '*' }))
 app.use(express.json())
 
 // Email configuration type
