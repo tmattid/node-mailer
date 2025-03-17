@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { Request, Response, RequestHandler } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import nodemailer from 'nodemailer'
@@ -75,7 +75,7 @@ const transporter = nodemailer.createTransport({
 } as EmailConfig)
 
 // Send email endpoint
-app.post('/api/send-email', async (req, res) => {
+const sendEmailHandler: RequestHandler = async (req, res) => {
   // Add CORS headers explicitly
   res.header('Access-Control-Allow-Origin', '*')
   res.header('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -85,7 +85,8 @@ app.post('/api/send-email', async (req, res) => {
     const { to, subject, text, html }: EmailRequest = req.body
 
     if (!to || !subject || !text) {
-      return res.status(400).json({ error: 'Missing required fields' })
+      res.status(400).json({ error: 'Missing required fields' })
+      return
     }
 
     const mailOptions = {
@@ -102,7 +103,9 @@ app.post('/api/send-email', async (req, res) => {
     console.error('Error sending email:', error)
     res.status(500).json({ error: 'Failed to send email' })
   }
-})
+}
+
+app.post('/api/send-email', sendEmailHandler)
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`)
