@@ -53,6 +53,9 @@ interface EmailConfig {
     user: string
     pass: string
   }
+  connectionTimeout?: number
+  greetingTimeout?: number
+  socketTimeout?: number
 }
 
 // Email request type
@@ -72,7 +75,17 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  // Add timeouts to prevent hanging connections
+  connectionTimeout: 5000, // 5 seconds
+  greetingTimeout: 5000, // 5 seconds
+  socketTimeout: 5000, // 5 seconds
 } as EmailConfig)
+
+// Verify transporter connection at startup
+transporter
+  .verify()
+  .then(() => console.log('SMTP connection verified'))
+  .catch((err) => console.error('SMTP connection failed:', err))
 
 // Send email endpoint
 const sendEmailHandler: RequestHandler = async (req, res) => {
@@ -97,11 +110,23 @@ const sendEmailHandler: RequestHandler = async (req, res) => {
       html: html || text,
     }
 
-    await transporter.sendMail(mailOptions)
-    res.json({ message: 'Email sent successfully' })
+    console.log('Attempting to send email to:', to)
+    const info = await transporter.sendMail(mailOptions)
+    console.log('Email sent successfully, messageId:', info.messageId)
+    res.json({ message: 'Email sent successfully', messageId: info.messageId })
   } catch (error) {
     console.error('Error sending email:', error)
-    res.status(500).json({ error: 'Failed to send email' })
+
+    // Enhanced error reporting
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error'
+    const errorName = error instanceof Error ? error.name : 'Error'
+
+    res.status(500).json({
+      error: 'Failed to send email',
+      details: errorMessage,
+      type: errorName,
+    })
   }
 }
 
