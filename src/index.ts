@@ -56,6 +56,13 @@ interface EmailConfig {
   connectionTimeout?: number
   greetingTimeout?: number
   socketTimeout?: number
+  debug?: boolean
+  tls?: {
+    rejectUnauthorized: boolean
+  }
+  pool?: boolean
+  maxConnections?: number
+  maxMessages?: number
 }
 
 // Email request type
@@ -76,9 +83,16 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASS,
   },
   // Add timeouts to prevent hanging connections
-  connectionTimeout: 5000, // 5 seconds
-  greetingTimeout: 5000, // 5 seconds
-  socketTimeout: 5000, // 5 seconds
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000, // 10 seconds
+  socketTimeout: 10000, // 10 seconds
+  debug: true, // Enable debug output
+  tls: {
+    rejectUnauthorized: false, // Don't reject self-signed or invalid certs
+  },
+  pool: true, // Use connection pooling
+  maxConnections: 5, // Limit concurrent connections
+  maxMessages: 100, // Limit messages per connection
 } as EmailConfig)
 
 // Verify transporter connection at startup
