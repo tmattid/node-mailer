@@ -1,6 +1,6 @@
 # NodeMailer Service
 
-//Version 2
+//Version 3
 
 A simple and type-safe Node.js service for sending emails using Nodemailer.
 

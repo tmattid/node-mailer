@@ -2,6 +2,7 @@ import express, { Request, Response, RequestHandler } from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import nodemailer from 'nodemailer'
+import SMTPTransport from 'nodemailer/lib/smtp-transport'
 
 // Load environment variables
 dotenv.config()
@@ -44,27 +45,6 @@ app.get('/health', (_, res) => {
   res.json({ status: 'ok' })
 })
 
-// Email configuration type
-interface EmailConfig {
-  host: string
-  port: number
-  secure: boolean
-  auth: {
-    user: string
-    pass: string
-  }
-  connectionTimeout?: number
-  greetingTimeout?: number
-  socketTimeout?: number
-  debug?: boolean
-  tls?: {
-    rejectUnauthorized: boolean
-  }
-  pool?: boolean
-  maxConnections?: number
-  maxMessages?: number
-}
-
 // Email request type
 interface EmailRequest {
   to: string
@@ -73,7 +53,7 @@ interface EmailRequest {
   html?: string
 }
 
-// Create transporter
+// Create transporter with proper typing
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
@@ -83,17 +63,17 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASS,
   },
   // Add timeouts to prevent hanging connections
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000, // 10 seconds
-  socketTimeout: 10000, // 10 seconds
+  connectionTimeout: 15000, // 15 seconds
+  greetingTimeout: 15000, // 15 seconds
+  socketTimeout: 15000, // 15 seconds
   debug: true, // Enable debug output
+  requireTLS: true, // Require TLS connection
   tls: {
-    rejectUnauthorized: false, // Don't reject self-signed or invalid certs
+    minVersion: 'TLSv1.2', // AT&T requires TLS 1.2 or higher
+    rejectUnauthorized: true, // AT&T uses valid certificates, so enforce validation
   },
-  pool: true, // Use connection pooling
-  maxConnections: 5, // Limit concurrent connections
-  maxMessages: 100, // Limit messages per connection
-} as EmailConfig)
+  pool: false, // Don't use connection pooling for AT&T
+} as SMTPTransport.Options)
 
 // Verify transporter connection at startup
 transporter
