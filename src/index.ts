@@ -91,17 +91,22 @@ const sendEmailHandler: RequestHandler = async (req, res) => {
   try {
     const { to, subject, text, html }: EmailRequest = req.body
 
-    if (!to || !subject || !text) {
+    if (!subject || !text) {
       res.status(400).json({ error: 'Missing required fields' })
       return
     }
 
+    // Always send to your email address, ignoring the "to" field from request
     const mailOptions = {
       from: process.env.SMTP_FROM,
-      to,
-      subject,
-      text,
-      html: html || text,
+      to: process.env.SMTP_FROM, // Always send to your email
+      subject: `Form submission from: ${to || 'Unknown sender'}`, // Include sender in subject
+      text: `Sender's email: ${to || 'Not provided'}\n\n${text}`, // Add sender info to email body
+      html: html
+        ? `<p><strong>Sender's email:</strong> ${
+            to || 'Not provided'
+          }</p>${html}`
+        : undefined,
     }
 
     // Retry logic for sending email
