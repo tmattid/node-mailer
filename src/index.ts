@@ -124,22 +124,57 @@ const sendEmailHandler: RequestHandler = async (req, res) => {
       html: html || text,
     }
 
-    console.log('Attempting to send email to:', to)
-    const info = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully, messageId:', info.messageId)
-    res.json({ message: 'Email sent successfully', messageId: info.messageId })
+    // Retry logic for sending email
+    const maxRetries = 3
+    let retryCount = 0
+    let lastError: any = null
+
+    while (retryCount < maxRetries) {
+      try {
+        console.log(`Attempt ${retryCount + 1} to send email to: ${to}`)
+        const info = await transporter.sendMail(mailOptions)
+        console.log('Email sent successfully, messageId:', info.messageId)
+        res.json({
+          message: 'Email sent successfully',
+          messageId: info.messageId,
+          attempts: retryCount + 1,
+        })
+        return // Exit on success
+      } catch (error) {
+        console.error(`Attempt ${retryCount + 1} failed:`, error)
+        lastError = error
+        retryCount++
+
+        if (retryCount < maxRetries) {
+          // Wait before retry (exponential backoff)
+          const delay = retryCount * 1000
+          console.log(`Waiting ${delay}ms before retry...`)
+          await new Promise((resolve) => setTimeout(resolve, delay))
+        }
+      }
+    }
+
+    // If we get here, all retries failed
+    throw lastError
   } catch (error) {
-    console.error('Error sending email:', error)
+    console.error('Error sending email after all retries:', error)
 
     // Enhanced error reporting
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error'
     const errorName = error instanceof Error ? error.name : 'Error'
+    const errorCode =
+      error instanceof Error && 'code' in error
+        ? (error as any).code
+        : 'UNKNOWN'
 
     res.status(500).json({
       error: 'Failed to send email',
       details: errorMessage,
       type: errorName,
+      code: errorCode,
+      smtp: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
     })
   }
 }
